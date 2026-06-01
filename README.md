@@ -1,37 +1,183 @@
-# 🛠️ Sistema de Gestión de Tickets (Microservicios)
+# Sistema de Soporte Técnico basado en Microservicios
 
-## 📌 1. El Desafío del Negocio (Problemática)
-Anteriormente, la administración de incidentes de soporte técnico se gestionaba de forma **manual**, lo que generaba ineficiencias críticas para la organización:
-* **Fallas de Registro:** Se creaban tickets asociados a usuarios inexistentes debido a la falta de validación inmediata.
-* **Fuga de Información:** Las solicitudes se extraviaban entre planillas de cálculo y correos electrónicos sin seguimiento.
-* **Falta de Trazabilidad:** No existía visibilidad real sobre los tiempos de resolución ni asignación clara de responsabilidades.
+## Descripción del Proyecto
 
-**La Solución:** Automatizar el flujo completo mediante una arquitectura desacoplada que valida la integridad de los datos en tiempo real y centraliza los reportes de manera segura.
+Este proyecto consiste en una aplicación desarrollada con arquitectura de microservicios para gestionar usuarios y tickets de soporte técnico.
 
----
+El sistema permite registrar usuarios, consultar información de usuarios y crear tickets de soporte asociados a usuarios existentes.
 
-## 🏗️ 2. Arquitectura de la Solución
-El ecosistema se diseñó utilizando dos microservicios independientes que garantizan la tolerancia a fallos:
-
-* **User Service (Puerto 8081):** Repositorio centralizado de los colaboradores y clientes autorizados en la plataforma. *(Base de datos: `support_users_db`)*.
-* **Ticket Service (Puerto 8082):** Módulo encargado exclusivamente de la apertura y control de incidentes. *(Base de datos: `support_tickets_db`)*.
-
-### 🔗 Integración Síncrona via OpenFeign
-Para erradicar los registros erróneos, implementamos **Spring Cloud OpenFeign**. Al procesar un ticket, el sistema consulta automáticamente al servicio de usuarios:
-* Si el ID de usuario es **válido**, el incidente se almacena de inmediato.
-* Si el ID **no existe**, el sistema intercepta el flujo, bloquea la acción y emite una excepción controlada.
+La solución fue desarrollada utilizando Spring Boot, Spring Data JPA, Spring Security, OpenFeign y MySQL.
 
 ---
 
-## 🧪 3. Guía de Validación (Pruebas en Postman)
+# Arquitectura del Sistema
 
-> 🔐 **Capa de Seguridad:** Las rutas están restringidas mediante **Spring Security**. En cada solicitud se debe configurar **Basic Auth** con las credenciales jerárquicas: **Usuario:** `admin` / **Contraseña:** `admin123`.
+El proyecto está compuesto por dos microservicios:
 
-### Paso 1: Alta de Usuario
-* **Endpoint:** `POST` | `http://localhost:8081/api/users`
-* **Carga Útil (JSON):**
-```json
-{
-    "name": "Nayarett Rodríguez",
-    "email": "nayar@supportsystem.com"
-}
+## UserService
+
+Responsable de administrar los usuarios del sistema.
+
+Funciones principales:
+
+* Registrar usuarios.
+* Consultar todos los usuarios.
+* Buscar usuarios por ID.
+* Validar información mediante DTO y Bean Validation.
+* Gestionar la persistencia en base de datos MySQL.
+
+Base de datos:
+
+* support_users_db
+
+Puerto:
+
+* 8081
+
+---
+
+## TicketService
+
+Responsable de administrar los tickets de soporte.
+
+Funciones principales:
+
+* Registrar tickets.
+* Consultar tickets existentes.
+* Verificar que el usuario exista antes de crear un ticket.
+* Comunicarse con UserService mediante Feign Client.
+
+Base de datos:
+
+* support_tickets_db
+
+Puerto:
+
+* 8082
+
+---
+
+# Flujo de Funcionamiento
+
+1. El cliente envía una solicitud para crear un ticket.
+2. TicketService recibe la solicitud.
+3. TicketService consulta a UserService utilizando Feign Client.
+4. UserService verifica si el usuario existe.
+5. Si el usuario existe, el ticket es almacenado en la base de datos.
+6. Si el usuario no existe, se devuelve un mensaje de error.
+7. Se responde al cliente con el resultado de la operación.
+
+---
+
+# Tecnologías Utilizadas
+
+* Java 24
+* Spring Boot 3.4.1
+* Spring Data JPA
+* Spring Security
+* Spring Validation
+* OpenFeign
+* Flyway
+* MySQL
+* Gradle
+* GitHub
+
+---
+
+# Seguridad
+
+La aplicación utiliza Spring Security con autenticación HTTP Basic.
+
+Credenciales configuradas:
+
+Usuario:
+
+admin
+
+Contraseña:
+
+admin123
+
+Estas credenciales permiten acceder a los endpoints protegidos del sistema.
+
+---
+
+# Validaciones Implementadas
+
+Usuarios:
+
+* Nombre obligatorio.
+* Correo obligatorio.
+* Validación de formato de correo electrónico.
+
+Tickets:
+
+* Título obligatorio.
+* Descripción obligatoria.
+* Usuario asociado obligatorio.
+
+---
+
+# Manejo de Excepciones
+
+Se implementó un manejo centralizado de excepciones mediante:
+
+* @ControllerAdvice
+* @RestControllerAdvice
+
+Esto permite entregar respuestas claras y códigos HTTP adecuados cuando ocurre un error.
+
+---
+
+# Comunicación entre Microservicios
+
+La comunicación se realiza mediante OpenFeign.
+
+TicketService utiliza UserClient para consultar UserService antes de registrar un ticket.
+
+De esta forma se garantiza que solamente se creen tickets asociados a usuarios válidos.
+
+---
+
+# Registro de Eventos (Logs)
+
+Se implementó SLF4J para registrar eventos importantes del sistema:
+
+* Creación de usuarios.
+* Creación de tickets.
+* Consultas realizadas.
+* Errores y excepciones.
+* Comunicación entre microservicios.
+
+---
+
+# Estructura del Proyecto
+
+Cada microservicio utiliza el patrón CSR:
+
+* Controller → Manejo de solicitudes HTTP.
+* Service → Lógica de negocio.
+* Repository → Acceso a base de datos.
+
+Además se utilizan:
+
+* DTOs
+* Configuración de seguridad
+* Configuración Feign
+* Manejo global de excepciones
+
+---
+
+# Ejecución del Proyecto
+
+1. Crear las bases de datos MySQL.
+2. Configurar usuario y contraseña en application.properties.
+3. Ejecutar UserService.
+4. Ejecutar TicketService.
+5. Probar los endpoints utilizando Postman.
+
+---
+
+# Conclusión
+
+Este proyecto implementa una arquitectura de microservicios utilizando buenas prácticas de desarrollo backend, permitiendo la comunicación entre servicios, validación de datos, persistencia en base de datos, seguridad básica y manejo adecuado de errores.
